@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+
+  db:
+    image: mariadb:latest
+    container_name: db
+    environment:
+      MYSQL_ROOT_PASSWORD: ecompass
+      MYSQL_DATABASE: proyecto_ecommerce
+      MYSQL_USER: ecomuser
+      MYSQL_PASSWORD: ecompass
+    volumes:
+      - ./data/init.sql:/docker-entrypoint-initdb.d/init.sql  # Inicializa la DB con datos
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+      
+
+  # REDIS BROKER       
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+
+  # BACKEND API       
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: db
+      DB_USER: ecomuser
+      DB_PASSWORD: ecompass
+      DB_NAME: proyecto_ecommerce
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - ./backend/app:/code/app
+      - ./logs:/app/logs
+
+
+  # FRONTEND (Gradio o equivalente)       
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "8501:8501"
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+
+  # SERVICIO DE INFERENCIA     
+  inference_api:
+    build:
+      context: ./inference
+      dockerfile: Dockerfile
+    container_name: inference_api
+    ports:
+      - "9000:9000"
+    depends_on:
+      - redis
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./inference/app:/code/app
+      - ./logs:/app/logs
+
+  # CELERY WORKER       
+  celery_worker:
+    build:
+      context: ./inference
+      dockerfile: Dockerfile.worker
+    container_name: celery_worker
+    command: celery -A app.tasks worker --loglevel=info -Q image
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      BACKEND_WEBHOOK: http://backend:8000/webhook/task_completed
+    depends_on:
+      - redis
+    volumes:
+      - ./inference/app:/code/app
+
+volumes:
+  db_data:

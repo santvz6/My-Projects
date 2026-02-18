@@ -1,1 +1,0 @@
-from app.tasks import process_image_task

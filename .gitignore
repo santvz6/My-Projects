@@ -1,13 +1,26 @@
 **/venv/
 **/.venv/
 
-**/*.pyc
-**/.pyo
+
 **/__pycache__/
-
-**/*.log
-
 **/.vscode/
 **/.idea/
 
+**/*.pyc
+**/.pyo
+**/*.log
 **/*.sqlite3
+
+# LaTex
+**/*.aux
+**/*.bbl
+**/*.bib
+**/*.blg
+**/*.bst
+**/*.out
+**/*.sty
+**/*.tex
+
+
+**/dataset/
+MachineLearning/Marcombo/Marcombo_Book

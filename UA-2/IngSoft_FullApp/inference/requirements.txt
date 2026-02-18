@@ -1,6 +1,0 @@
-fastapi[standard]
-requests
-celery[redis]
-onnxruntime
-pillow
-flower
